@@ -1,14 +1,14 @@
-import { getInput, splitLines } from "./utils"
+import { getInput } from "./utils"
 
 type Race = { time: number; distance: number }
 
 export async function day6() {
   const input = await getInput(6)
-  const foo = parseInput(input)
-  return { part1: part1(foo), part2: part2(input) }
+  return { part1: part1(input), part2: part2(input) }
 }
 
-export function part1(races: Race[]): number {
+export function part1(input: string): number {
+  const races = parseInput(input)
   return races.reduce((acc, race) => acc * winningHoldTimesCount(race), 1)
 }
 
@@ -18,23 +18,25 @@ export function part2(input): number {
 }
 
 function winningHoldTimesCount(race: Race): number {
-  const minHoldTimeToWin = findMinHoldTimeToWin(race)
-  const maxHoldTimeToWin = findMaxHoldTimeToWin(race)
-  return maxHoldTimeToWin - minHoldTimeToWin + 1
+  const minHoldTimeToTie = findMinTimeToMatchRecord(race)
+  const maxHoldTimeToTie = findMaxTimeToMatchRecord(race)
+  const lowestWinner = Math.floor(minHoldTimeToTie + 1) // 10 => 11, 10.5 => 11, 10.0000001 => 11
+  const highestWinner = Math.ceil(maxHoldTimeToTie - 1) // 11 => 10, 10.5 => 10, 10.9999999 => 10
+
+  return highestWinner - lowestWinner + 1 // add one because we count both ends
 }
 
-function findMinHoldTimeToWin(race: Race): number {
-  for (let speed = 1; speed < race.time; speed++) {
-    const distanceTravelled = speed * (race.time - speed)
-    if (distanceTravelled > race.distance) return speed
-  }
+// ((t)ime - x) * x >= (d)istance
+// tx - x^2 > d
+// 0 > x^2 - tx + d
+// -> quadratic formula
+// ((t - (t ** 2 - 4 * d) ** (1/2)) / 2) < x < ((t + (t ** 2 - 4 * d) ** (1/2)) / 2)
+function findMinTimeToMatchRecord({ time, distance }: Race): number {
+  return (time - (time ** 2 - 4 * distance) ** (1 / 2)) / 2
 }
 
-function findMaxHoldTimeToWin(race: Race): number {
-  for (let speed = race.time - 1; speed > 0; speed--) {
-    const distanceTravelled = speed * (race.time - speed)
-    if (distanceTravelled > race.distance) return speed
-  }
+function findMaxTimeToMatchRecord({ time, distance }: Race): number {
+  return (time + Math.pow(time ** 2 - 4 * distance, 1 / 2)) / 2
 }
 
 export function parseInput(input: string) {
